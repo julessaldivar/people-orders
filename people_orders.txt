@@ -1,0 +1,83 @@
+# Using people collection
+
+Average age 
+1. db.people.aggregate({$group: {_id: null, AvgAge: {$avg: "$age"}}})
+
+Average age by gender
+2. db.people.aggregate({$group: {_id: "$gender", AvgAge: {$avg: "$age"}}})
+
+Number of people by gender
+3. db.people.aggregate({$group: {_id: "$gender", count: {$sum: 1}}})
+
+Oldest people, top 3 oldest
+4. db.people.aggregate([{$sort: {age: -1}}, {$limit: 3}])
+
+Youngest people, display 5 youngest, only their names as one value (first + " " + last) and their ages
+5.db.people.aggregate([
+{$sort: {age: 1}}, 
+{$limit: 5}, 
+{$project: {_id: 0, name: {$concat: ["$first_name"," ","$last_name"]}, age: 1} } 
+])
+
+Average age of children
+6. db.people.aggregate([{$group: {_id: null, Avgnumkids: {$avg:{$size: "$children"}}}}
+])
+
+Name and age of children in Michigan who are under age ten
+7. db.people.aggregate([
+  {$unwind: "$children"},
+  {$match: {state: "Michigan", "children.age": {$lt: 10}}},
+  {$project: {_id: 0, "children.name": 1, "children.age": 1}}
+])
+
+Average age of child by state, sorted oldest first
+8. db.people.aggregate([
+  {$unwind: "$children"},
+  {$group: {_id: "$state",
+  AvgChildAge: {$avg: "$children.age"}}},
+  {$sort: {AvgChildAge: -1}}
+])
+
+
+# Using orders collection
+
+Find the total dollar amount of all sales ever. Use the total field.
+9. db.orders.aggregate([
+  {$group: {_id: null, totalsales: {$sum: "$total"}}}
+])
+
+Find the total dollar amount of sales on 2017-05-22. Use the total field.
+10. db.orders.aggregate([
+  {$match: {date: "2017-05-22"}},
+  {$group: {_id: null, totalsales: {$sum: "$total"}}}
+])
+
+Find the date with the greatest number of orders. Include the date and the number of orders.
+11. db.orders.aggregate([
+  {$group: {_id: "$date", numberorders: {$sum: 1}}},
+  {$sort: {numberorders: -1}},
+  {$limit: 1}
+])
+
+Find the date with the greatest total sales. Include the date and the dollar amount for that day.
+12. db.orders.aggregate([
+  {$group: {_id: "$date", totalsales: {$sum: "$total"}}},
+  {$sort: {totalsales: -1}},
+  {$limit: 1}
+])
+
+Find the top three products that have had the greatest number sold. Include product name and number sold.
+13. db.orders.aggregate([
+  {$unwind: "$items"},
+  {$group: {_id: "$items.product", numbersold: {$sum: "$items.count"}}},
+  {$sort: {numbersold: -1}},
+  {$limit: 3}
+])
+
+Find the top item that has the greatest revenue (number sold * price). Include product name and dollar amount of sales.
+14. db.orders.aggregate([
+  {$unwind: "$items"},
+  {$group: {_id: "$items.product", revenue: {$sum: {$multiply: ["$items.count", "$items.price"]}}}},
+  {$sort: {revenue: -1}},
+  {$limit: 1}
+])
